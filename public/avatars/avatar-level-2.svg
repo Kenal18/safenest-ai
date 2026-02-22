@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <!-- Level 2: Blue / Advanced Bot -->
+  <defs>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563EB;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <path d="M 20 50 Q 50 10 80 50 Q 80 90 50 90 Q 20 90 20 50" fill="url(#grad2)" />
+  <rect x="30" y="45" width="40" height="15" rx="5" fill="#1E3A8A" />
+  <circle cx="40" cy="52" r="5" fill="#60A5FA" />
+  <circle cx="60" cy="52" r="5" fill="#60A5FA" />
+  <polygon points="50,20 40,35 60,35" fill="#BFDBFE" />
+</svg>
