@@ -195,27 +195,60 @@ export interface RatedFund extends FundData {
     overall_rating: number;
 }
 
-export function calculateFundRating(fund: FundData): number {
+// 1. Calculate raw score for a given fund based on factors
+function calculateRawScore(fund: FundData): number {
     let score = 0;
 
-    if (fund.expense_ratio <= 0.5) score += 3;
-    if (fund.volatility_level === "Low") score += 2;
-    if (fund.category === "Index") score += 2;
-
-    // Extract min bound of 3yr return (e.g. "12-14%" -> 12)
+    // Return (higher better): Extract numeric minimum expected return
     const returnStr = fund["3yr_return_range"];
     const minReturnMatch = returnStr.match(/(\d+(\.\d+)?)/);
-    if (minReturnMatch) {
-        const minReturn = parseFloat(minReturnMatch[1]);
-        if (minReturn >= 10) score += 2;
+    const minReturn = minReturnMatch ? parseFloat(minReturnMatch[1]) : 0;
+    score += minReturn;
+
+    // Expense ratio (lower better)
+    score -= fund.expense_ratio;
+
+    // Volatility level (Low > Medium > High)
+    if (fund.volatility_level === "Low") score += 2;
+    else if (fund.volatility_level === "Medium") score += 1;
+
+    // AUM category (High > Medium > Low)
+    if (fund.aum_category === "High") score += 2;
+    else if (fund.aum_category === "Medium") score += 1;
+
+    return score;
+}
+
+// Pre-compute raw scores for ALL funds to find highest and lowest
+// Also ensures no two funds have exactly the same raw score mathematically
+const rawFundScores = funds.map((fund, index) => {
+    // Add small unique decimal to act as tie breaker
+    const rawScore = calculateRawScore(fund) + (index * 0.00001);
+    return { name: fund.name, rawScore };
+});
+
+const minScore = Math.min(...rawFundScores.map(f => f.rawScore));
+const maxScore = Math.max(...rawFundScores.map(f => f.rawScore));
+
+export function calculateFundRating(fund: FundData): number {
+    // Get the pre-computed raw score for this fund 
+    const fundData = rawFundScores.find(f => f.name === fund.name);
+    const fundScore = fundData ? fundData.rawScore : calculateRawScore(fund);
+
+    // Convert to 1–10 rating scale dynamically
+    const rating = 1 + 9 * (fundScore - minScore) / (maxScore - minScore);
+
+    // Round to one decimal place
+    let finalRating = Math.round(rating * 10) / 10;
+
+    // Ensure no more than one fund gets exactly 10
+    // If rounded to 10 but wasn't the absolute max, cap at 9.9
+    if (finalRating === 10 && fundScore < maxScore) {
+        finalRating = 9.9;
     }
 
-    if (fund.aum_category === "High") score += 1;
+    // Safeguard ensuring minimum of 1
+    finalRating = Math.max(1, finalRating);
 
-    // Cap rating at 10 and ensure minimum 1
-    score = Math.min(score, 10);
-    score = Math.max(score, 1);
-
-    // Round to 1 decimal note: math round trick since toFixed returns string
-    return Math.round(score * 10) / 10;
+    return finalRating;
 }
